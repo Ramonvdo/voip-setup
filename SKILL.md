@@ -57,6 +57,8 @@ py -3 .claude/skills/voip-setup/scripts/provision_telnyx.py \
     --company <Company> --area-code <512> --user <sipusername> --apply
 ```
 
+On a Mac or Linux, `python3` in place of `py -3`, here and below.
+
 Dry-run first and show the user what it would buy. The script is idempotent: it finds what
 exists by name, never orders a second number, and rotates the password when the connection
 already exists, because a password is only visible at the moment it is set.
@@ -87,12 +89,15 @@ two are fine. Run it before every configuration attempt, and first when diagnosi
 Then the writer puts the account straight into Linphone's own config file, because typing
 these settings by hand fails quietly in at least three ways (below). It refuses to run
 while Linphone is open (Linphone rewrites that file when it exits), backs the file up, and
-strips half-finished accounts from earlier attempts.
+strips half-finished accounts from earlier attempts. On a Mac, `osascript -e 'quit app
+"Linphone"'` closes it: it answers with error -128 and quits anyway, so confirm with
+`pgrep -x linphone` rather than trusting the error.
 
 ### 4. Prove it works, in this order
 
 1. **Registered:** start Linphone, then read its log for `LinphoneRegistrationOk`:
-   `%LOCALAPPDATA%\linphone\logs\linphone1.log` on Windows.
+   `%LOCALAPPDATA%\linphone\logs\linphone1.log` on Windows,
+   `~/Library/Application Support/linphone/logs/linphone1.log` on a Mac.
 2. **A call connects:** have the user dial their own mobile. The screen must show the
    bought number, not their own. Add their own country to `--destinations` for this, and
    say it can be removed afterwards.
@@ -111,7 +116,9 @@ guess twice in a row — read the log.
 | "Outbound proxy uri is invalid" | Linphone wants a URI, not a host: `sip:sip.telnyx.com:5061;transport=tls`, or leave the field empty once domain and transport are set. |
 | Masked numbers, `+1512------` | The account is not verified. Not a permissions problem, not an API problem. |
 | The password "does not work" | Generate without look-alikes (no `I`, `l`, `1`, `O`, `0`). It gets typed by hand at least once. |
-| Registered, but calls to one country fail | `whitelisted_destinations` or `max_destination_rate` on the profile. A Dutch mobile can exceed a $0.05/min cap while every US call sits far under it. |
+| Registered, but calls to one country fail | `whitelisted_destinations` or `max_destination_rate` on the profile. A mobile abroad can exceed a $0.05/min cap while every US call sits far under it. |
+| On a Mac, Linphone opens with no account after the settings were written | It reads `~/Library/Preferences/linphone/linphonerc`. `~/Library/Application Support/linphone/` holds only its logs and databases, and a config written there is silently ignored. |
+| On a Mac, `--check` fails with `CERTIFICATE_VERIFY_FAILED` | Python from python.org ships without root certificates until its `Install Certificates.command` has been run. Not the network, not the account: Linphone brings its own certificates, so only the probe is affected. |
 
 `transport_protocol` is not a server-side setting on a credential connection; it reads back
 `null`. TLS is the softphone's own choice, so it belongs in the config, not the API call.

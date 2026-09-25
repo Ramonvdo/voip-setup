@@ -47,6 +47,8 @@ cp -r voip-setup/SKILL.md voip-setup/scripts .claude/skills/voip-setup/
 Then ask Claude Code for `/voip-setup`. The scripts also run on their own:
 
 ```bash
+# py -3 is Windows; on a Mac or Linux, python3
+
 # see what it would buy, buy nothing
 py -3 scripts/provision_telnyx.py --company Acme --area-code 512 --user acmecaller
 py -3 scripts/provision_telnyx.py --company Acme --area-code 512 --user acmecaller --apply
@@ -85,6 +87,8 @@ Every one of these was hit on a first run, and none of them say what they are.
 | Numbers come back as `+1512------` | The account is not verified. Not permissions, not the API |
 | The password "does not work" | Generate it without look-alikes: no `I`, `l`, `1`, `O`, `0`. It gets typed by hand at least once |
 | Registered, but calls to one country fail | The profile's allowed destinations, or its max per-minute rate. A mobile abroad can exceed a $0.05 cap while every domestic call sits far under it |
+| On a Mac, Linphone opens with no account after setup | Its settings live in `~/Library/Preferences/linphone/linphonerc`. `Application Support` holds only its logs and databases, and a config written there is ignored |
+| On a Mac, `--check` fails with `CERTIFICATE_VERIFY_FAILED` | Python from python.org has no root certificates until you run its `Install Certificates.command`. Not the network, not the account. Homebrew's `python3` works as is |
 
 `transport_protocol` is not a server-side setting on a credential connection; it reads back
 `null`. TLS is the softphone's own choice.

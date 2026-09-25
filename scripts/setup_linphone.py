@@ -4,6 +4,8 @@
     py -3 setup_linphone.py --user <sipuser> --password "<password>" --check
     py -3 setup_linphone.py --user <sipuser> --password "<password>"
 
+On a Mac or Linux, python3 in place of py -3.
+
 WHY A SCRIPT AND NOT A SCREENSHOT OF THE SETTINGS
 
 Typing SIP settings by hand fails quietly. The outbound proxy field wants a URI and
@@ -21,7 +23,7 @@ broken is the app, on that machine. It leaves no trace: the probe unregisters af
 
 WHERE THE CONFIG LIVES
     Windows  %LOCALAPPDATA%\\linphone\\linphonerc
-    macOS    ~/Library/Application Support/linphone/linphonerc
+    macOS    ~/Library/Preferences/linphone/linphonerc
     Linux    ~/.config/linphone/linphonerc
 Linphone rewrites that file when it exits, so it must be closed while this runs. The
 script refuses to touch it otherwise, and backs the file up before writing.
@@ -52,7 +54,10 @@ def config_path() -> Path:
     if system == "Windows":
         return Path(os.environ["LOCALAPPDATA"]) / "linphone" / "linphonerc"
     if system == "Darwin":
-        return Path.home() / "Library/Application Support/linphone/linphonerc"
+        # Not Application Support: on a Mac, Linphone keeps its logs and databases there
+        # but reads its settings from Preferences. A file written to the wrong one is
+        # simply ignored, and Linphone opens with no account.
+        return Path.home() / "Library/Preferences/linphone/linphonerc"
     return Path.home() / ".config/linphone/linphonerc"
 
 
@@ -61,7 +66,10 @@ def linphone_is_running() -> bool:
         out = subprocess.run(["tasklist", "/FI", "IMAGENAME eq linphone.exe"],
                              capture_output=True, text=True).stdout
         return "linphone.exe" in out
-    out = subprocess.run(["pgrep", "-f", "linphone"], capture_output=True, text=True)
+    # The process name, exactly. Matching whole command lines (-f) also caught anything that
+    # merely mentions linphone, like an editor open on linphonerc or a tail on its log, and
+    # then refused to write while Linphone was in fact closed.
+    out = subprocess.run(["pgrep", "-x", "linphone"], capture_output=True, text=True)
     return out.returncode == 0
 
 
@@ -75,7 +83,15 @@ def register_probe(user: str, password: str, domain: str = DOMAIN) -> bool:
     tag, call_id = secrets.token_hex(6), secrets.token_hex(10) + "@probe"
     raw = socket.create_connection((domain, TLS_PORT), timeout=10)
     local_ip, local_port = raw.getsockname()
-    sock = ssl.create_default_context().wrap_socket(raw, server_hostname=domain)
+    try:
+        sock = ssl.create_default_context().wrap_socket(raw, server_hostname=domain)
+    except ssl.SSLCertVerificationError:
+        # Python from python.org on a Mac has no root certificates until its "Install
+        # Certificates.command" has run. It reads like a network fault, and it only stops
+        # this probe: Linphone brings certificates of its own.
+        raise SystemExit("\n  Python could not verify the carrier's certificate. With Python from\n"
+                         "  python.org on a Mac, run \"Install Certificates.command\" in its folder\n"
+                         "  under /Applications, or use Homebrew's python3, then try again.\n")
     sock.settimeout(10)
 
     def message(cseq: int, auth: str = "", expires: int = 60) -> bytes:
@@ -202,9 +218,9 @@ def main() -> None:
 
     print("\n2. writing the account into Linphone's config")
     if linphone_is_running():
-        raise SystemExit("\n  Linphone is open. Quit it completely, including the tray icon,\n"
-                         "  then run this again: it rewrites its config when it closes and\n"
-                         "  would undo this.\n")
+        raise SystemExit("\n  Linphone is open. Quit it completely (Cmd+Q on a Mac), including\n"
+                         "  the tray icon, then run this again: it rewrites its config when it\n"
+                         "  closes and would undo this.\n")
     write_account(config_path(), args.user, args.password,
                   args.display or args.user, args.domain)
     print("\n  Done. Start Linphone; it should show as registered within a few seconds.\n"
