@@ -53,8 +53,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func dial(_ url: URL) {
-        let number = String(url.absoluteString.drop { $0 != ":" }.dropFirst()
-            .prefix { $0 != ";" && $0 != "?" }
+        // Decoded first: a link written tel:%2B1... would otherwise lose its + and dial a 2
+        // in front. A comma is a pause before an extension, so the number ends there.
+        let link = url.absoluteString.removingPercentEncoding ?? url.absoluteString
+        let number = String(link.drop { $0 != ":" }.dropFirst()
+            .prefix { $0 != ";" && $0 != "?" && $0 != "," }
             .filter { $0.isNumber || $0 == "+" })
         guard !number.isEmpty else { return NSApp.terminate(nil) }
         guard let linphone = NSWorkspace.shared.urlForApplication(withBundleIdentifier: linphoneID) else {

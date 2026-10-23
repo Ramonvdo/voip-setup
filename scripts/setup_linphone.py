@@ -178,7 +178,9 @@ realm={domain}
         print(f"  backed up the old config to {backup.name}")
 
     # Any earlier half-finished account has to go, or Linphone keeps reporting its error.
-    text = re.sub(r"\n\[(?:proxy|auth_info|account)_\d+\][^\[]*", "\n", text)
+    # Anchored to line starts: matching the newline before each section used it up, so of
+    # two sections back to back the second survived, and a re-run left a stale account.
+    text = re.sub(r"^\[(?:proxy|auth_info|account)_\d+\][^\[]*", "", text, flags=re.M)
     # The carrier requires SRTP and answers an unencrypted offer with
     # "488 Media Encryption Required", which reaches the caller as a call that simply
     # will not connect. Linphone ships media_encryption=none, so this REPLACES the

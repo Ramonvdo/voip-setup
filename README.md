@@ -109,8 +109,8 @@ open "/Applications/Linphone Dialer.app"
 ```
 
 Accept it as the app for phone links, and turn it on under System Settings > Privacy &
-Security > Accessibility. Needs the Xcode command line tools. Windows and Linux are not
-covered.
+Security > Accessibility. A rebuild resets that switch, so turn it on again after one. Needs
+the Xcode command line tools. Windows and Linux are not covered.
 
 ## Before you call anyone
 
