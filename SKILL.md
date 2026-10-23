@@ -107,12 +107,15 @@ strips half-finished accounts from earlier attempts. On a Mac, `osascript -e 'qu
 If a call fails, the log names the cause; grep it for `SIP/2.0 4` and `Reason:`. Never
 guess twice in a row — read the log.
 
-### 5. Click to call, on a Mac
+### 5. Click to call
 
 Linphone 6.2 takes `tel:` links but dials them without encryption, which the connection
-refuses (below), so clicking a number appears to do nothing. `scripts/mac-dialer/` builds a
-small app that becomes the Mac's handler for phone links and presses Linphone's own New
-call, dialer and Call buttons instead, which do use SRTP:
+refuses (below), so clicking a number appears to do nothing. A small app presses Linphone's
+own New call, dialer and Call buttons instead, which do use SRTP. There is one for a Mac and
+one for Windows. Linux is not covered.
+
+**On a Mac**, `scripts/mac-dialer/` builds an app that becomes the Mac's handler for phone
+links:
 
 ```bash
 zsh .claude/skills/voip-setup/scripts/mac-dialer/build.sh
@@ -122,7 +125,22 @@ open "/Applications/Linphone Dialer.app"
 Opened by hand, it asks to become the app for phone links (accept) and for Accessibility
 access (System Settings > Privacy & Security > Accessibility). A rebuild changes its ad-hoc
 signature, so that switch has to be turned on again. Test it with `open "tel:<their mobile>"`.
-Windows and Linux are not covered.
+
+**On Windows**, `scripts/windows-dialer/` builds the app for the current Windows user with the
+C# compiler that comes with Windows (no admin, no download), installs it under
+`%LOCALAPPDATA%\Programs\Linphone Dialer` and runs it once:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .claude\skills\voip-setup\scripts\windows-dialer\build.ps1
+```
+
+That run points Linphone's own `Linphone.tel` and `Linphone.callto` link handlers at the app,
+in `HKEY_CURRENT_USER\Software\Classes`. Windows Settings won't offer a per-user app like this
+one as a default, but it does offer Linphone, and a default is remembered by that handler's
+name, so this needs no choice in Settings when Linphone already is the default. If it isn't,
+Settings opens on Linphone's page: have the user choose Linphone for TEL and CALLTO. No
+Accessibility switch is needed. Test it with `Start-Process "tel:<their mobile>"`. To undo it,
+delete those two keys.
 
 ## The traps, all of which look like something else
 

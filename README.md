@@ -91,7 +91,7 @@ Every one of these was hit on a first run, and none of them say what they are.
 | On a Mac, Linphone opens with no account after setup | Its settings live in `~/Library/Preferences/linphone/linphonerc`. `Application Support` holds only its logs and databases, and a config written there is ignored |
 | On a Mac, `--check` fails with `CERTIFICATE_VERIFY_FAILED` | Python from python.org has no root certificates until you run its `Install Certificates.command`. Not the network, not the account. Homebrew's `python3` works as is |
 | A clicked number opens Linphone, which then does nothing | No default account. Linphone 6 waits for one before dialling a number it was handed. The setup script writes `default_proxy=0` |
-| A clicked number fails with `488`, dialling by hand works | Linphone 6.2 dials links and its command line with encryption forced off, whatever `media_encryption` says. On a Mac, use the click-to-call app below |
+| A clicked number fails with `488`, dialling by hand works | Linphone 6.2 dials links and its command line with encryption forced off, whatever `media_encryption` says. Use the click-to-call app below, on a Mac or on Windows |
 
 `transport_protocol` is not a server-side setting on a credential connection; it reads back
 `null`. TLS is the softphone's own choice.
@@ -110,7 +110,24 @@ open "/Applications/Linphone Dialer.app"
 
 Accept it as the app for phone links, and turn it on under System Settings > Privacy &
 Security > Accessibility. A rebuild resets that switch, so turn it on again after one. Needs
-the Xcode command line tools. Windows and Linux are not covered.
+the Xcode command line tools.
+
+## Click to call, on Windows
+
+Windows has the same problem, and `scripts/windows-dialer/` fixes it the same way. It builds
+the app for the current Windows user with the C# compiler that comes with Windows, then runs
+it once:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\windows-dialer\build.ps1
+```
+
+That first run points Linphone's own `tel:` and `callto:` links at the app, so a link that
+used to open Linphone now goes through it. Windows Settings won't offer a per-user app like
+this one as a default, which is why it takes over Linphone's links instead. If Linphone isn't
+the default for phone links yet, Settings opens on Linphone's page: choose it for TEL and
+CALLTO. To undo it, delete `Linphone.tel` and `Linphone.callto` under
+`HKEY_CURRENT_USER\Software\Classes`. Linux is not covered.
 
 ## Before you call anyone
 
