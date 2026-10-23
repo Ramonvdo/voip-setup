@@ -60,8 +60,9 @@ py -3 .claude/skills/voip-setup/scripts/provision_telnyx.py \
 On a Mac or Linux, `python3` in place of `py -3`, here and below.
 
 Dry-run first and show the user what it would buy. The script is idempotent: it finds what
-exists by name, never orders a second number, and rotates the password when the connection
-already exists, because a password is only visible at the moment it is set.
+exists (the login by SIP username), never orders a second number for the same login, never
+touches another caller's login or number, and rotates the password when the login already
+exists, because a password is only visible at the moment it is set.
 
 It creates, in this order and for these reasons:
 
@@ -138,6 +139,8 @@ guess twice in a row — read the log.
 ## Adding a second caller later
 
 Run the provisioning again with a new `--user` and the same `--company`. It reuses the
-profile and the number, mints a separate login, and leaves the first caller alone. Then run
+profile (so the callers share its daily cap and call limit), mints a separate login and
+orders that caller their own number, so a callback rings whoever made the call. The first
+caller's login and number are left alone. Then run
 the Linphone setup on their machine. Revoking one person later is then deleting one
 credential connection, not rotating everybody's password.

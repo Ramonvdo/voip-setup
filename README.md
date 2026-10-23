@@ -71,8 +71,9 @@ library alone.
 | The number pointed back at the connection | A callback rings the softphone, which US caller-ID rules expect |
 | `ani_override` on the connection | A softphone offers its SIP username as the caller ID, which is not a phone number. Without this, calls are rejected or show nonsense |
 
-Both scripts are idempotent: they find what exists by name, never order a second number, and
-dry-run unless told otherwise.
+Both scripts are idempotent and dry-run unless told otherwise. The provisioning script gives
+each caller their own login and number: it finds a login by its SIP username, never orders a
+second number for the same login, and leaves other callers' logins and numbers alone.
 
 ## The traps
 
@@ -97,7 +98,9 @@ Every one of these was hit on a first run, and none of them say what they are.
 
 - **Give each caller their own SIP user.** Two devices on one credential fight over inbound
   calls, and revoking one person then means rotating everybody's password. Run the
-  provisioning again with a different `--user`.
+  provisioning again with a different `--user` and the same `--company`. That caller gets
+  their own login and number, so a callback rings whoever made the call, and shares the
+  company's daily spend cap and call limit with the others.
 - **Turn on auto-recharge.** At a zero balance, calls stop dead mid-morning.
 - **A new number has no carrier reputation.** Low volume and answering callbacks keeps it
   out of the spam labels.

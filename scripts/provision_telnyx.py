@@ -24,9 +24,10 @@ ORDER MATTERS, and each step exists for a reason:
      it the softphone offers its SIP username as the caller ID, which is not a phone
      number, and calls are rejected or show something meaningless.
 
-Idempotent: re-running finds what exists by name and fills gaps. It never orders a second
-number. If the connection already exists its password is rotated, because a password is
-only ever visible at the moment it is set.
+Idempotent: re-running finds what exists and fills gaps. Each caller gets their own login
+and their own number, so a callback rings whoever made the call; it never orders a second
+number for the same login, and never touches another caller's. If the login already exists
+its password is rotated, because a password is only ever visible at the moment it is set.
 """
 
 from __future__ import annotations
@@ -99,7 +100,7 @@ def main() -> None:
         raise SystemExit(f"TELNYX_API_KEY is not in {env_path}")
 
     profile_name = f"{args.company} outbound"
-    connection_name = f"{args.company} softphone"
+    connection_name = f"{args.company} softphone {args.user}"
     tx = httpx.Client(base_url=API, headers={"Authorization": f"Bearer {key}"}, timeout=60)
 
     def explain(resp):
@@ -159,11 +160,12 @@ def main() -> None:
     # 2. the softphone login
     password = ""
     connections = get("/credential_connections", **{"page[size]": 50})
-    connection = next((c for c in connections
-                       if c.get("connection_name") == connection_name), None)
+    # By SIP username, not by name: matching the company's connection name made a second
+    # caller rotate the first caller's password.
+    connection = next((c for c in connections if c.get("user_name") == args.user), None)
     if connection:
-        print(f"connection: '{connection_name}' exists ({connection['id']}), "
-              f"user {connection.get('user_name')}")
+        print(f"connection: '{connection.get('connection_name')}' exists ({connection['id']}), "
+              f"user {args.user}")
         if args.apply:
             password = "".join(secrets.choice(ALPHABET) for _ in range(20))
             patch(f"/credential_connections/{connection['id']}", {
@@ -187,10 +189,14 @@ def main() -> None:
             })
             print(f"  created {connection['id']}")
 
-    # 3. the number
+    # 3. the number: the one already ringing this login, else a free one in the area code.
+    # A number that rings another login is that caller's, so it is never taken over.
     owned = get("/phone_numbers", **{"page[size]": 100})
     number = next((n for n in owned
-                   if (n.get("phone_number") or "").startswith(f"+1{args.area_code}")), None)
+                   if connection and n.get("connection_id") == connection["id"]), None) \
+        or next((n for n in owned
+                 if (n.get("phone_number") or "").startswith(f"+1{args.area_code}")
+                 and not n.get("connection_id")), None)
     if number:
         print(f"number: {number['phone_number']} already owned")
     else:
