@@ -107,6 +107,23 @@ strips half-finished accounts from earlier attempts. On a Mac, `osascript -e 'qu
 If a call fails, the log names the cause; grep it for `SIP/2.0 4` and `Reason:`. Never
 guess twice in a row — read the log.
 
+### 5. Click to call, on a Mac
+
+Linphone 6.2 takes `tel:` links but dials them without encryption, which the connection
+refuses (below), so clicking a number appears to do nothing. `scripts/mac-dialer/` builds a
+small app that becomes the Mac's handler for phone links and presses Linphone's own New
+call, dialer and Call buttons instead, which do use SRTP:
+
+```bash
+zsh .claude/skills/voip-setup/scripts/mac-dialer/build.sh
+open "/Applications/Linphone Dialer.app"
+```
+
+Opened by hand, it asks to become the app for phone links (accept) and for Accessibility
+access (System Settings > Privacy & Security > Accessibility). A rebuild changes its ad-hoc
+signature, so that switch has to be turned on again. Test it with `open "tel:<their mobile>"`.
+Windows and Linux are not covered.
+
 ## The traps, all of which look like something else
 
 | What you see | What it actually is |
@@ -120,6 +137,8 @@ guess twice in a row — read the log.
 | Registered, but calls to one country fail | `whitelisted_destinations` or `max_destination_rate` on the profile. A mobile abroad can exceed a $0.05/min cap while every US call sits far under it. |
 | On a Mac, Linphone opens with no account after the settings were written | It reads `~/Library/Preferences/linphone/linphonerc`. `~/Library/Application Support/linphone/` holds only its logs and databases, and a config written there is silently ignored. |
 | On a Mac, `--check` fails with `CERTIFICATE_VERIFY_FAILED` | Python from python.org ships without root certificates until its `Install Certificates.command` has been run. Not the network, not the account: Linphone brings its own certificates, so only the probe is affected. |
+| A clicked number opens Linphone, which then does nothing | No default account. Linphone 6 waits for the default account to register before dialling a number it was handed, and an account written into `linphonerc` without `default_proxy=0` in `[sip]` is never the default, so it waits forever. The log shows `ToolModel: create call with` and no `CallSession` after it. |
+| A clicked number fails with `488`, dialling by hand works | Linphone 6.2 starts a call from a link or its command line with encryption forced to none, ignoring `media_encryption=srtp`. Dial through its own dialer: step 5. |
 
 `transport_protocol` is not a server-side setting on a credential connection; it reads back
 `null`. TLS is the softphone's own choice, so it belongs in the config, not the API call.

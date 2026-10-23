@@ -184,12 +184,15 @@ realm={domain}
     # will not connect. Linphone ships media_encryption=none, so this REPLACES the
     # value rather than only filling it in when absent: checking for the key and
     # leaving its value alone is how the first attempt at this failed.
-    if re.search(r"^media_encryption=.*$", text, re.M):
-        text = re.sub(r"^media_encryption=.*$", "media_encryption=srtp", text, flags=re.M)
-    elif "[sip]\n" in text:
-        text = text.replace("[sip]\n", "[sip]\nmedia_encryption=srtp\n", 1)
-    else:
-        text += "\n[sip]\nmedia_encryption=srtp\n"
+    # default_proxy=0 makes this account the default one: without it Linphone 6 waits
+    # for a default account before dialling a clicked number, and never dials.
+    for key, value in (("media_encryption", "srtp"), ("default_proxy", "0")):
+        if re.search(rf"^{key}=.*$", text, re.M):
+            text = re.sub(rf"^{key}=.*$", f"{key}={value}", text, flags=re.M)
+        elif "[sip]\n" in text:
+            text = text.replace("[sip]\n", f"[sip]\n{key}={value}\n", 1)
+        else:
+            text += f"\n[sip]\n{key}={value}\n"
     cfg.parent.mkdir(parents=True, exist_ok=True)
     cfg.write_text(text.rstrip("\n") + "\n" + account, encoding="utf-8")
     print(f"  account written to {cfg}")

@@ -90,9 +90,27 @@ Every one of these was hit on a first run, and none of them say what they are.
 | Registered, but calls to one country fail | The profile's allowed destinations, or its max per-minute rate. A mobile abroad can exceed a $0.05 cap while every domestic call sits far under it |
 | On a Mac, Linphone opens with no account after setup | Its settings live in `~/Library/Preferences/linphone/linphonerc`. `Application Support` holds only its logs and databases, and a config written there is ignored |
 | On a Mac, `--check` fails with `CERTIFICATE_VERIFY_FAILED` | Python from python.org has no root certificates until you run its `Install Certificates.command`. Not the network, not the account. Homebrew's `python3` works as is |
+| A clicked number opens Linphone, which then does nothing | No default account. Linphone 6 waits for one before dialling a number it was handed. The setup script writes `default_proxy=0` |
+| A clicked number fails with `488`, dialling by hand works | Linphone 6.2 dials links and its command line with encryption forced off, whatever `media_encryption` says. On a Mac, use the click-to-call app below |
 
 `transport_protocol` is not a server-side setting on a credential connection; it reads back
 `null`. TLS is the softphone's own choice.
+
+## Click to call, on a Mac
+
+Linphone takes `tel:` links, but dials them without encryption, so the carrier refuses
+them. `scripts/mac-dialer/` builds a small app that becomes the Mac's handler for phone
+links and presses Linphone's own dialer buttons instead, so a number clicked in a browser,
+a CRM or a lead sheet rings out:
+
+```bash
+zsh scripts/mac-dialer/build.sh
+open "/Applications/Linphone Dialer.app"
+```
+
+Accept it as the app for phone links, and turn it on under System Settings > Privacy &
+Security > Accessibility. Needs the Xcode command line tools. Windows and Linux are not
+covered.
 
 ## Before you call anyone
 
