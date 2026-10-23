@@ -1,5 +1,7 @@
 # voip-setup
 
+[![AgentShield Security](https://merx.help/badge/A+.svg)](https://merx.help/shield)
+
 A Claude Code skill that turns a verified [Telnyx](https://telnyx.com) account into a
 working phone line: a local number, a softphone login with spending limits, and
 [Linphone](https://www.linphone.org) configured on the machine that will make the calls.
